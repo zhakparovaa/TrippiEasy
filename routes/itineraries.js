@@ -112,4 +112,13 @@ router.put('/:id', (req, res) => {
   res.json(itinerary);
 });
 
+router.delete('/:id', (req, res) => {
+  const itineraryIndex = itineraries.findIndex(it => it.id === parseInt(req.params.id));
+  if (itineraryIndex === -1) {
+    return res.status(404).json({ message: 'Itinerary not found' });
+  }
+  itineraries.splice(itineraryIndex, 1);
+  res.status(204).send();
+});
+
 module.exports = router;

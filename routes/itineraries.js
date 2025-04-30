@@ -1,7 +1,7 @@
+
 const express = require('express');
 const router = express.Router();
 
-// In-memory data store for specific places to visit
 let places = [
   {
     id: 1,
@@ -23,7 +23,6 @@ let places = [
   }
 ];
 
-// In-memory data store for itineraries
 let itineraries = [
   {
     id: 1,
@@ -31,16 +30,14 @@ let itineraries = [
     notes: 'A fun trip to explore Paris landmarks',
     startDate: '2025-05-07',
     endDate: '2025-05-12',
-    placeIds: [1, 2] // IDs of places (Eiffel Tower, Champ-de-Mars)
+    placeIds: [1, 2]
   }
 ];
 
-// Get all places to visit
 router.get('/places', (req, res) => {
   res.json(places);
 });
 
-// Get a single place by ID
 router.get('/places/:id', (req, res) => {
   const place = places.find(p => p.id === parseInt(req.params.id));
   if (!place) {
@@ -49,7 +46,6 @@ router.get('/places/:id', (req, res) => {
   res.json(place);
 });
 
-// Share a tip for a specific place
 router.post('/places/:id/tips', (req, res) => {
   const place = places.find(p => p.id === parseInt(req.params.id));
   if (!place) {
@@ -63,11 +59,33 @@ router.post('/places/:id/tips', (req, res) => {
   res.status(201).json({ message: 'Tip added successfully', tips: place.tips });
 });
 
-// Create a new itinerary
+
+router.delete('/places/:id/tips/:tipIndex', (req, res) => {
+  const place = places.find(p => p.id === parseInt(req.params.id));
+  if (!place) {
+    return res.status(404).json({ message: 'Place not found' });
+  }
+  const tipIndex = parseInt(req.params.tipIndex);
+  if (tipIndex < 0 || tipIndex >= place.tips.length) {
+    return res.status(404).json({ message: 'Tip not found' });
+  }
+  place.tips.splice(tipIndex, 1);
+  res.status(204).send();
+});
+
 router.post('/', (req, res) => {
   const { title, notes, startDate, endDate, placeIds } = req.body;
   if (!title || !startDate || !endDate || !placeIds || !Array.isArray(placeIds)) {
     return res.status(400).json({ message: 'Title, startDate, endDate, and placeIds are required' });
+  }
+
+  const invalidPlaceIds = placeIds.filter(id => !places.find(p => p.id === id));
+  if (invalidPlaceIds.length > 0) {
+    return res.status(400).json({ message: `Invalid placeIds: ${invalidPlaceIds.join(', ')}` });
+  }
+  
+  if (new Date(startDate) > new Date(endDate)) {
+    return res.status(400).json({ message: 'startDate must be before or equal to endDate' });
   }
   const newItinerary = {
     id: itineraries.length + 1,
@@ -81,13 +99,11 @@ router.post('/', (req, res) => {
   res.status(201).json(newItinerary);
 });
 
-// Get all itineraries
 router.get('/', (req, res) => {
-  res.json(itineraries);
+  const sortedItineraries = [...itineraries].sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
+  res.json(sortedItineraries);
 });
 
-// Get a single itinerary by ID (for collaboration/sharing)
-// MOVED BELOW /places routes
 router.get('/:id', (req, res) => {
   const itinerary = itineraries.find(it => it.id === parseInt(req.params.id));
   if (!itinerary) {
@@ -96,14 +112,27 @@ router.get('/:id', (req, res) => {
   res.json(itinerary);
 });
 
-// Update an itinerary (for collaboration)
-// MOVED BELOW /places routes
 router.put('/:id', (req, res) => {
   const itinerary = itineraries.find(it => it.id === parseInt(req.params.id));
   if (!itinerary) {
     return res.status(404).json({ message: 'Itinerary not found' });
   }
   const { title, notes, startDate, endDate, placeIds } = req.body;
+
+  if (placeIds) {
+    if (!Array.isArray(placeIds)) {
+      return res.status(400).json({ message: 'placeIds must be an array' });
+    }
+    const invalidPlaceIds = placeIds.filter(id => !places.find(p => p.id === id));
+    if (invalidPlaceIds.length > 0) {
+      return res.status(400).json({ message: `Invalid placeIds: ${invalidPlaceIds.join(', ')}` });
+    }
+  }
+
+
+  if (startDate && endDate && new Date(startDate) > new Date(endDate)) {
+    return res.status(400).json({ message: 'startDate must be before or equal to endDate' });
+  }
   itinerary.title = title || itinerary.title;
   itinerary.notes = notes || itinerary.notes;
   itinerary.startDate = startDate || itinerary.startDate;

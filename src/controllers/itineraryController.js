@@ -67,16 +67,18 @@ exports.addCollaborator = async (req, res) => {
     }
 };
 
-exports.addTip = async (req, res) => {
+exports.generateShareLink = async (req, res) => {
     try {
-        const { userId, content } = req.body;
-        const itinerary = await ItineraryDAO.addTip(req.params.id, userId, content);
+        const { itineraryId } = req.body;
+        const itinerary = await ItineraryDAO.getItineraryById(itineraryId);
         if (!itinerary) {
             return res.status(404).json({ message: 'Itinerary not found' });
         }
-        res.status(200).json({ message: 'Tip added successfully' });
+        itinerary.generateShareLink();
+        await itinerary.save();
+        res.status(200).json({ shareLink: itinerary.shareLink });
     } catch (error) {
-        res.status(400).json({ message: error.message });
+        res.status(500).json({ message: error.message });
     }
 };
 
@@ -87,20 +89,6 @@ exports.getItineraryByShareLink = async (req, res) => {
             return res.status(404).json({ message: 'Itinerary not found' });
         }
         res.status(200).json(itinerary);
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
-}; 
-
-exports.deleteTip = async (req, res) => {
-    try {
-        const itineraryId = req.params.id;
-        const tipIndex = parseInt(req.params.tipIndex);
-        const itinerary = await ItineraryDAO.deleteTip(itineraryId, tipIndex);
-        if (!itinerary) {
-            return res.status(404).json({ message: 'Itinerary or tip not found' });
-        }
-        res.status(200).json({ message: 'Tip deleted successfully' });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }

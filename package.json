@@ -7,22 +7,24 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/zhakparovaa/TrippiEasy.git"
+    "url": "git+https://github.com/UnicornUniversity/realizace-backendu-zhakparovaa.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/zhakparovaa/TrippiEasy/issues"
+    "url": "https://github.com/UnicornUniversity/realizace-backendu-zhakparovaa/issues"
   },
-  "homepage": "https://github.com/zhakparovaa/TrippiEasy#readme",
+  "homepage": "https://github.com/UnicornUniversity/realizace-backendu-zhakparovaa#readme",
   "dependencies": {
     "cors": "^2.8.5",
-    "express": "^5.1.0",
-    "mongoose": "^8.1.0"
+    "dotenv": "^10.0.0",
+    "express": "^4.17.1",
+    "mongoose": "^8.1.0",
+    "multer": "^1.4.5-lts.2"
   },
   "devDependencies": {
     "nodemon": "^3.1.10"
   },
-  "description": ""
+  "description": "TrippiEasy - A travel planning backend for Unicorn University students."
 }

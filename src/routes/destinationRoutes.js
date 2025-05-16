@@ -8,4 +8,6 @@ router.get('/:id', destinationController.getDestinationById);
 
 router.post('/', destinationController.createDestination);
 
+router.post('/tips', destinationController.addTip);
+
 module.exports = router; 

@@ -66,3 +66,4 @@ A Node.js/Express backend for a travel planning application that allows users to
 - Mongoose
 - CORS
 - dotenv
+

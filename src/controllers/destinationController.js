@@ -27,9 +27,35 @@ exports.getDestinationById = async (req, res) => {
 
 exports.createDestination = async (req, res) => {
     try {
-        const destination = await DestinationDAO.createDestination(req.body);
-        res.status(201).json(destination);
+      const { name, description, country, imageUrl } = req.body;
+      const newDestination = new Destination({
+        id: require('crypto').randomBytes(12).toString('hex'),
+        name,
+        description,
+        country,
+        imageUrl,
+        tips: [],
+        itineraries: []
+      });
+      const savedDestination = await newDestination.save();
+      res.status(201).json(savedDestination);
     } catch (error) {
-        res.status(400).json({ message: error.message });
+      res.status(500).json({ error: error.message });
     }
-};
+  };
+  
+  exports.addTip = async (req, res) => {
+    const { destinationId, text, author } = req.body;
+  
+    try {
+      const destination = await Destination.findOne({ id: destinationId });
+      if (!destination) return res.status(404).json({ error: 'Destination not found' });
+  
+      destination.tips.push({ text, author });
+      await destination.save();
+  
+      res.status(201).json({ destinationId, message: 'Tip added successfully' });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  };

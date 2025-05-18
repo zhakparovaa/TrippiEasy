@@ -1,26 +1,40 @@
 const mongoose = require('mongoose');
 
 const itinerarySchema = new mongoose.Schema({
-  id: { type: String, required: true, unique: true }, 
-  title: { type: String, required: true },
-  notes: { type: String },
-  startDate: { type: Date, required: true },
-  endDate: { type: Date, required: true },
-  destination: { type: mongoose.Schema.Types.ObjectId, ref: 'Destination', required: true },
-  shareLink: { type: String, unique: true },
+  title: {
+    type: String,
+    required: true,
+  },
+  startDate: {
+    type: Date,
+    required: true,
+  },
+  endDate: {
+    type: Date,
+    required: true,
+  },
+  country: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Country',
+    required: true,
+  },
   collaborators: [{
-    user: { type: String }, // Simplified since no User model (use String for userId)
-    role: { type: String, default: 'viewer' }
-  }]
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User', 
+  }],
+  shareLink: {
+    type: String,
+    unique: true,
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now,
+  },
 });
 
 itinerarySchema.methods.generateShareLink = function() {
-  this.shareLink = require('crypto').randomBytes(16).toString('hex');
-};
-
-itinerarySchema.methods.addCollaborator = async function(userId, role) {
-  this.collaborators.push({ user: userId, role });
-  return await this.save();
+  this.shareLink = Math.random().toString(36).substring(2, 15);
+  return this.shareLink;
 };
 
 module.exports = mongoose.model('Itinerary', itinerarySchema);

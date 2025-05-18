@@ -1,12 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { useLocation, useNavigate } from 'react-router-dom';
-
-const mockItineraries = [
-  { country: 'France', flag: '🇫🇷', name: 'Trip to Paris', dates: '7.5. - 12.5.' },
-  { country: 'United Kingdom', flag: '🇬🇧', name: 'Trip to London', dates: '5.6. - 11.6.' },
-  { country: 'Italy', flag: '🇮🇹', name: 'Trip to Rome', dates: '1.7. - 7.7.' },
-];
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { fetchAPI, API_ENDPOINTS } from '../api/config';
 
 const Container = styled.div`
   padding: 24px 0 0 0;
@@ -15,44 +10,59 @@ const Title = styled.h2`
   text-align: center;
   font-size: 24px;
   font-weight: 600;
-  margin-bottom: 24px;
+  margin-bottom: 16px;
 `;
 const CountryHeader = styled.div`
   display: flex;
   align-items: center;
-  justify-content: center;
-  font-size: 22px;
-  margin-bottom: 16px;
-  gap: 12px;
-`;
-const ItineraryCard = styled.div`
-  display: flex;
-  align-items: center;
   background: #d3d3d3;
   border-radius: 32px;
-  margin: 16px 5%;
-  padding: 16px 32px;
-  font-size: 22px;
+  margin: 0 5% 24px 5%;
+  padding: 16px 24px;
+  font-size: 24px;
   font-family: serif;
-  justify-content: flex-start;
 `;
 const Flag = styled.span`
   font-size: 36px;
   margin-right: 24px;
 `;
-const Info = styled.div`
-  display: flex;
-  flex-direction: column;
+const ItineraryCard = styled.div`
+  background: #eceaf1;
+  border-radius: 18px;
+  margin: 12px 5%;
+  padding: 16px 20px;
+  font-size: 18px;
+  font-family: serif;
+  box-shadow: 0 2px 8px #0001;
+  position: relative;
 `;
-const Name = styled.div`
-  font-size: 22px;
-  font-weight: 500;
+const ItineraryTitle = styled.div`
+  font-weight: 600;
+  margin-bottom: 4px;
 `;
-const Dates = styled.div`
-  font-size: 16px;
+const ItineraryDates = styled.div`
   color: #444;
-  margin-top: 4px;
-  font-style: italic;
+  font-size: 16px;
+`;
+const ActionButtons = styled.div`
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  gap: 8px;
+`;
+const ActionButton = styled.button`
+  padding: 6px 12px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  background: ${props => props.$delete ? '#ffebee' : '#e3f2fd'};
+  color: ${props => props.$delete ? '#c62828' : '#1565c0'};
+  &:hover {
+    background: ${props => props.$delete ? '#ffcdd2' : '#bbdefb'};
+  }
 `;
 const AddButton = styled.button`
   position: fixed;
@@ -117,91 +127,161 @@ const ModalButton = styled.button`
 `;
 
 const Itineraries = () => {
-  const location = useLocation();
   const navigate = useNavigate();
-  const selectedCountry = location.state?.country;
-
-  const [itineraries, setItineraries] = useState(mockItineraries);
+  const location = useLocation();
+  const selectedCountry = location.state?.selectedCountry;
+  const [itineraries, setItineraries] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [showModal, setShowModal] = useState(false);
-  const [form, setForm] = useState({ name: '', dates: '' });
+  const [editingItinerary, setEditingItinerary] = useState(null);
+  const [form, setForm] = useState({ title: '', dates: '' });
 
-  const filteredItineraries = selectedCountry
-    ? itineraries.filter(it => it.country === selectedCountry.name)
-    : itineraries;
+  useEffect(() => {
+    const fetchItineraries = async () => {
+      try {
+        let data;
+        if (selectedCountry) {
+          data = await fetchAPI(`${API_ENDPOINTS.itineraries}?countryId=${selectedCountry._id}`);
+        } else {
+          data = await fetchAPI('/itineraries/all');
+        }
+        setItineraries(data);
+        setLoading(false);
+      } catch (err) {
+        setError('Failed to fetch itineraries');
+        setLoading(false);
+      }
+    };
+    fetchItineraries();
+  }, [selectedCountry]);
 
-  const handleItineraryClick = (itinerary, idx) => {
-    navigate(`/itinerary/${idx}`, { state: { itinerary } });
+  const formatDateToDDMM = (dateString) => {
+    const d = new Date(dateString);
+    if (isNaN(d.getTime())) return '';
+    const day = d.getDate().toString().padStart(2, '0');
+    const month = (d.getMonth() + 1).toString().padStart(2, '0');
+    return `${day}.${month}.`;
   };
 
-  const handleAdd = () => setShowModal(true);
-  const handleClose = () => {
-    setShowModal(false);
-    setForm({ name: '', dates: '' });
+  const handleEdit = (itinerary) => {
+    setEditingItinerary(itinerary);
+    setForm({
+      title: itinerary.title,
+      dates: `${formatDateToDDMM(itinerary.startDate)} - ${formatDateToDDMM(itinerary.endDate)}`
+    });
+    setShowModal(true);
   };
-  const handleChange = e => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
-  const handleSubmit = e => {
-    e.preventDefault();
-    if (!form.name || !form.dates) return;
-    setItineraries(its => [
-      ...its,
-      {
-        country: selectedCountry ? selectedCountry.name : 'Unknown',
-        flag: selectedCountry ? selectedCountry.flag : '🏳️',
-        name: form.name,
-        dates: form.dates,
-      },
-    ]);
-    handleClose();
+
+  const handleDelete = async (itineraryId) => {
+    if (!window.confirm('Are you sure you want to delete this itinerary?')) return;
+    try {
+      await fetchAPI(`${API_ENDPOINTS.itineraries}/${itineraryId}`, { method: 'DELETE' });
+      setItineraries(prev => prev.filter(i => i._id !== itineraryId));
+    } catch (err) {
+      setError('Failed to delete itinerary');
+    }
   };
+
+  if (loading) return <Container>Loading...</Container>;
+  if (error) return <Container>{error}</Container>;
 
   return (
     <Container>
       <Title>Itineraries</Title>
       {selectedCountry && (
         <CountryHeader>
-          <span style={{ fontSize: 32 }}>{selectedCountry.flag}</span>
-          <span>{selectedCountry.name}</span>
+          <Flag>{selectedCountry.flag || '🏳️'}</Flag>
+          {selectedCountry.name}
         </CountryHeader>
       )}
-      {filteredItineraries.map((it, idx) => (
-        <ItineraryCard key={idx} onClick={() => handleItineraryClick(it, idx)} style={{cursor: 'pointer'}}>
-          <Flag>{it.flag}</Flag>
-          <Info>
-            <Name>{it.name}</Name>
-            <Dates>{it.dates}</Dates>
-          </Info>
+      {itineraries.map(itinerary => (
+        <ItineraryCard key={itinerary._id}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 24, cursor: 'pointer' }} onClick={() => navigate(`/itineraries/${itinerary._id}`, { state: { itinerary } })}>
+            <Flag>{itinerary.countryFlag || '🏳️'}</Flag>
+            <div>
+              <ItineraryTitle>{itinerary.title}</ItineraryTitle>
+              <ItineraryDates>
+                {itinerary.startDate && itinerary.endDate
+                  ? `${formatDateToDDMM(itinerary.startDate)} - ${formatDateToDDMM(itinerary.endDate)}`
+                  : ''}
+              </ItineraryDates>
+            </div>
+          </div>
+          <ActionButtons>
+            <ActionButton onClick={() => handleEdit(itinerary)}>Edit</ActionButton>
+            <ActionButton $delete onClick={() => handleDelete(itinerary._id)}>Delete</ActionButton>
+          </ActionButtons>
         </ItineraryCard>
       ))}
-      {filteredItineraries.length === 0 && (
-        <div style={{ textAlign: 'center', color: '#888', marginTop: 32 }}>
-          No itineraries for this country yet.
-        </div>
-      )}
-      <AddButton title="Add new itinerary" onClick={handleAdd}>+</AddButton>
+      <AddButton title="Add new itinerary" onClick={() => setShowModal(true)}>+</AddButton>
       {showModal && (
         <ModalOverlay>
           <Modal>
-            <ModalTitle>Add New Itinerary</ModalTitle>
-            <form onSubmit={handleSubmit}>
+            <ModalTitle>{editingItinerary ? 'Edit Itinerary' : 'Add New Itinerary'}</ModalTitle>
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              if (!form.title || !form.dates) {
+                setError('Please provide itinerary name and dates.');
+                return;
+              }
+              try {
+                const [startDateStr, endDateStr] = form.dates.split(' - ').map(date => date.trim());
+                const [startDay, startMonth] = startDateStr.split('.').map(Number);
+                const [endDay, endMonth] = endDateStr.split('.').map(Number);
+                const currentYear = new Date().getFullYear();
+                const startDate = new Date(currentYear, startMonth - 1, startDay);
+                const endDate = new Date(currentYear, endMonth - 1, endDay);
+                if (isNaN(startDate.getTime()) || isNaN(endDate.getTime()) || startDate > endDate) {
+                  setError('Invalid date range. Use DD.MM. - DD.MM. format (e.g., 09.06. - 11.06.).');
+                  return;
+                }
+                const itineraryData = {
+                  title: form.title,
+                  startDate: startDate.toISOString().split('T')[0],
+                  endDate: endDate.toISOString().split('T')[0],
+                  ...(selectedCountry ? { country: selectedCountry._id } : {}),
+                };
+                if (editingItinerary) {
+                  const updatedItinerary = await fetchAPI(`${API_ENDPOINTS.itineraries}/${editingItinerary._id}`, {
+                    method: 'PUT',
+                    body: JSON.stringify(itineraryData),
+                  });
+                  setItineraries(prev => prev.map(i => i._id === editingItinerary._id ? updatedItinerary : i));
+                } else {
+                  const newItinerary = await fetchAPI(API_ENDPOINTS.itineraries, {
+                    method: 'POST',
+                    body: JSON.stringify(itineraryData),
+                  });
+                  setItineraries(prev => [...prev, newItinerary]);
+                }
+                setShowModal(false);
+                setForm({ title: '', dates: '' });
+                setEditingItinerary(null);
+              } catch (err) {
+                setError(editingItinerary ? 'Failed to update itinerary' : 'Failed to create itinerary');
+              }
+            }}>
               <Input
-                name="name"
-                placeholder="Trip name"
-                value={form.name}
-                onChange={handleChange}
+                name="title"
+                placeholder="Itinerary title"
+                value={form.title}
+                onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
                 required
               />
               <Input
                 name="dates"
-                placeholder="Dates (e.g. 1.7. - 7.7.)"
+                placeholder="Dates (e.g., 09.06. - 11.06.)"
                 value={form.dates}
-                onChange={handleChange}
+                onChange={e => setForm(f => ({ ...f, dates: e.target.value }))}
                 required
               />
               <ModalButtonRow>
-                <ModalButton type="button" onClick={handleClose}>Cancel</ModalButton>
-                <ModalButton type="submit">Add</ModalButton>
+                <ModalButton type="button" onClick={() => { setShowModal(false); setEditingItinerary(null); setForm({ title: '', dates: '' }); }}>Cancel</ModalButton>
+                <ModalButton type="submit">{editingItinerary ? 'Save' : 'Add'}</ModalButton>
               </ModalButtonRow>
             </form>
+            {error && <div style={{ color: 'red', textAlign: 'center' }}>{error}</div>}
           </Modal>
         </ModalOverlay>
       )}
@@ -209,4 +289,4 @@ const Itineraries = () => {
   );
 };
 
-export default Itineraries; 
+export default Itineraries;

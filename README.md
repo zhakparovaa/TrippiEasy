@@ -30,7 +30,6 @@ A Node.js/Express backend for a travel planning application that allows users to
 - `GET /api/destinations/:id` - Get a single destination
 - `POST /api/destinations` - Create a new destination
 - `PUT /api/destinations/:id` - Update a destination
-- `DELETE /api/destinations/:id` - Delete a destination
 
 ### Itineraries
 - `GET /api/itineraries` - Get all itineraries

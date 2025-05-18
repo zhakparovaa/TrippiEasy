@@ -1,13 +1,14 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, Link } from 'react-router-dom';
 import styled from 'styled-components';
 import { FiMap, FiMapPin, FiUsers, FiUser } from 'react-icons/fi';
-import CountryList from './pages/CountryList';
+import CountriesPage from './pages/CountriesPage';
 import Itineraries from './pages/Itineraries';
 import ItineraryDetail from './pages/ItineraryDetail';
 import ShareExperience from './pages/ShareExperience';
 import Collaboration from './pages/Collaboration';
 import Profile from './pages/Profile';
+import logo from './assets/logo.png';
 
 const BottomNav = styled.nav`
   position: fixed;
@@ -27,7 +28,8 @@ const NavIcon = styled.div`
   flex-direction: column;
   align-items: center;
   font-size: 28px;
-  color: #111;
+  color: ${props => (props.$active ? '#111' : '#888')};
+  cursor: pointer;
 `;
 const Main = styled.main`
   padding-bottom: 80px;
@@ -36,22 +38,25 @@ const Main = styled.main`
 function App() {
   return (
     <Router>
+      <header style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '24px 0' }}>
+        <img src={logo} alt="TrippiEasy Logo" style={{ height: 80 }} />
+      </header>
       <Main>
         <Routes>
           <Route path="/" element={<Navigate to="/countries" />} />
-          <Route path="/countries" element={<CountryList />} />
+          <Route path="/countries" element={<CountriesPage />} />
           <Route path="/itineraries" element={<Itineraries />} />
-          <Route path="/itinerary/:id" element={<ItineraryDetail />} />
+          <Route path="/itineraries/:id" element={<ItineraryDetail />} />
           <Route path="/share" element={<ShareExperience />} />
           <Route path="/collaborate" element={<Collaboration />} />
           <Route path="/profile" element={<Profile />} />
         </Routes>
       </Main>
       <BottomNav>
-        <NavIcon as="a" href="/countries"><FiMap /></NavIcon>
-        <NavIcon as="a" href="/itineraries"><FiMapPin /></NavIcon>
-        <NavIcon as="a" href="/collaborate"><FiUsers /></NavIcon>
-        <NavIcon as="a" href="/profile"><FiUser /></NavIcon>
+        <NavIcon as={Link} to="/countries" $active={window.location.pathname === '/countries'}><FiMap /></NavIcon>
+        <NavIcon as={Link} to="/itineraries" $active={window.location.pathname === '/itineraries'}><FiMapPin /></NavIcon>
+        <NavIcon as={Link} to="/collaborate" $active={window.location.pathname === '/collaborate'}><FiUsers /></NavIcon>
+        <NavIcon as={Link} to="/profile" $active={window.location.pathname === '/profile'}><FiUser /></NavIcon>
       </BottomNav>
     </Router>
   );

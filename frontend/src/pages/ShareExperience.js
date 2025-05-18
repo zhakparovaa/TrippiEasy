@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
+import { fetchFileAPI, API_ENDPOINTS } from '../api/config';
 
 const Container = styled.div`
   padding: 24px 0 0 0;
@@ -76,7 +77,9 @@ const RemoveBtn = styled.button`
 
 const ShareExperience = () => {
   const [tip, setTip] = useState('');
-  const [photos, setPhotos] = useState([]); // {file, url}
+  const [photos, setPhotos] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   const handlePhotoChange = e => {
     const files = Array.from(e.target.files);
@@ -88,11 +91,26 @@ const ShareExperience = () => {
     setPhotos(prev => prev.filter((_, i) => i !== idx));
   };
 
-  const handleSubmit = e => {
+  const handleSubmit = async e => {
     e.preventDefault();
-    alert('Experience shared! (mock)');
-    setTip('');
-    setPhotos([]);
+    if (!tip.trim() && photos.length === 0) return;
+
+    setLoading(true);
+    const formData = new FormData();
+    formData.append('tip', tip);
+    photos.forEach((p, idx) => formData.append(`photos[${idx}]`, p.file));
+    
+    try {
+      await fetchFileAPI('/experiences', formData); // Adjust endpoint as needed
+      setTip('');
+      setPhotos([]);
+      setError(null);
+      alert('Experience shared successfully!');
+    } catch (err) {
+      setError('Failed to share experience');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -112,7 +130,7 @@ const ShareExperience = () => {
         {photos.map((p, idx) => (
           <Photo key={idx}>
             <img src={p.url} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-            <RemoveBtn type="button" onClick={() => handleRemovePhoto(idx)}>&times;</RemoveBtn>
+            <RemoveBtn type="button" onClick={() => handleRemovePhoto(idx)}>×</RemoveBtn>
           </Photo>
         ))}
       </PhotoPreview>
@@ -122,10 +140,13 @@ const ShareExperience = () => {
           value={tip}
           onChange={e => setTip(e.target.value)}
         />
-        <SubmitButton type="submit">Add tip</SubmitButton>
+        <SubmitButton type="submit" disabled={loading}>
+          {loading ? 'Submitting...' : 'Add tip'}
+        </SubmitButton>
+        {error && <div style={{ color: 'red', textAlign: 'center' }}>{error}</div>}
       </form>
     </Container>
   );
 };
 
-export default ShareExperience; 
+export default ShareExperience;
